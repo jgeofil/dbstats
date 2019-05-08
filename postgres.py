@@ -2,8 +2,7 @@ import psycopg2
 import yaml
 import os
 import csv
-import sparse
-import numpy as np
+from models import ReferenceMatrix, DumpRows
 
 selectFrom = """SELECT {0} FROM {1};"""
 countDistinct = """SELECT COUNT({0}), {0} AS some_alias FROM {1} WHERE concept_cd='{2}' GROUP BY {0};"""
@@ -75,25 +74,18 @@ visitIds = {str(val[0]): i for i, val in enumerate(visits)}
 visitIds["@"] = len(visitIds)
 
 
-# Get adjacency matrix
-scurr = conn.cursor("server_side")
-comm = selectFrom.format(', '.join(['patient_num', 'concept_cd', 'modifier_cd', 'trial_visit_num']), 'i2b2demodata.observation_fact')
-scurr.execute(comm)
+DumpRows(
+	OUT_PATH,
+	conn,
+	'i2b2demodata.relation_type',
+	['id', 'label']
+).run()
 
-adjMat = sparse.DOK((len(patientIds), len(conceptIds), len(modifierIds), len(visitIds)), dtype=np.uint8)
-
-for o in scurr:
-	try:
-		o = [str(x) for x in o]
-		i, j, k, l = patientIds[o[0]], conceptIds[o[1]], modifierIds[o[2]], visitIds[o[3]]
-		adjMat[i, j, k, l] += 1
-	except:
-		with open(os.path.join(OUT_PATH, 'error.log'), 'a') as log:
-			log.write("{0}\t{1}\t{2}\t{3}\n".format(o[0], o[1], o[2], o[3]))
-
-adjMat = adjMat.to_coo()
-sparse.save_npz(os.path.join(OUT_PATH, 'observation_matrix'), adjMat)
-
+ReferenceMatrix(
+	OUT_PATH, conn,
+	'i2b2demodata.observation_fact',
+	['patient_num', 'concept_cd', 'modifier_cd', 'trial_visit_num']
+).run()
 
 # Get concept distributions
 for conceptCode in conceptIds:
