@@ -1,5 +1,7 @@
+#!/usr/bin/env python
+
 import psycopg2, os, argparse
-from .models import ReferenceMatrix, DumpRows
+from dbstats.models import ReferenceMatrix, DumpRows
 
 parser = argparse.ArgumentParser(description='DBstats')
 parser.add_argument('--db', help='Database name.', default='transmart')
