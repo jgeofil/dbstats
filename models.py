@@ -155,33 +155,3 @@ class DumpRows(Model):
 		output_rows(os.path.join(self.output_path_, self.table_name_), cursor)
 
 
-class FieldDistribution(Model):
-
-	def __init__(self, out_path: str, connection: psycopg2._psycopg.connection, table_name: str, field: str, group_by: str):
-
-		Model.__init__(self, out_path, connection, table_name, [field], 'field_distribution')
-
-		self.group_by_ = group_by
-
-	def run(self):
-
-		query = select_distinct_values.format(self.group_by_, self.table_name_)
-		cursor = self.get_named_cursor()
-		cursor.execute(query)
-		print(query)
-		for value in cursor:
-
-			try:
-				value = str(value[0])
-
-				query = count_concept_occurrences.format(self.fields_[0], self.table_name_, self.group_by_, value)
-				curr = self.connection_.cursor()
-
-				curr.execute(query)
-				self.log('Error for field {0} = {1}'.format(self.group_by_, value))
-
-				output_rows(os.path.join(self.output_path_, '{0}-{1}-{2}'.format(self.fields_[0], self.group_by_, value)), curr)
-			except:
-				self.log('Error for field {0} = {1}'.format(self.group_by_, value))
-
-
