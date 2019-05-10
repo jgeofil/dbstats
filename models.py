@@ -1,13 +1,8 @@
-import sparse
-import psycopg2
+import sparse, psycopg2, os
 from typing import List
-from util import output_list, output_rows
-import os
-import numpy as np
 from tqdm import tqdm
-
-from sql import select_fields_from_table, select_fields_from_table_where, select_distinct_values
-from sql import select_distinct_values_where
+import numpy as np
+from sql import select_fields_from_table, select_fields_from_table_where, select_distinct_values, select_distinct_values_where
 
 
 class Model:
@@ -37,6 +32,18 @@ class Model:
 	def makedir(path: str):
 		if not os.path.exists(path):
 			os.makedirs(path)
+
+	@staticmethod
+	def output_list(file_path: str, list: List):
+		with open(file_path, "w+") as fout:
+			for val in list:
+				fout.write("{0}\n".format(val))
+
+	@staticmethod
+	def output_rows(file_path: str, cursor: psycopg2._psycopg.cursor):
+		with open(file_path, "w+") as fout:
+			for row in cursor:
+				fout.write('\t'.join([str(x) for x in row]) + '\n')
 
 	def log(self, low_row):
 		with open(self.log_path_, 'a+') as flog:
@@ -81,7 +88,7 @@ class ReferenceMatrix(Model):
 			cursor.execute(query)
 			result = [self.stringify(row)[0] for row in cursor]
 			if not field in self.ignore_keys_:
-				output_list(os.path.join(out_path, field), result)
+				self.output_list(os.path.join(out_path, field), result)
 			shape.append(len(result))
 			self.dimension_keys[field] = self.rows_to_index(result)
 		return tuple(shape)
@@ -115,33 +122,36 @@ class ReferenceMatrix(Model):
 		sparse.save_npz(os.path.join(out_path, 'dimension_matrix_'+str(ratio).replace('.', '')), self.cube)
 
 	def run(self, ratio=1.0):
-		if self.group_by_:
-			query = select_distinct_values.format(self.group_by_, self.table_name_)
-			cursor1 = self.get_named_cursor()
-			cursor1.execute(query)
+		try:
+			if self.group_by_:
+				query = select_distinct_values.format(self.group_by_, self.table_name_)
+				cursor1 = self.get_named_cursor()
+				cursor1.execute(query)
 
-			for value in cursor1:
-				value = str(value[0])
+				for value in cursor1:
+					value = str(value[0])
 
-				subfolder = os.path.join(self.output_path_, value)
-				self.makedir(subfolder)
+					subfolder = os.path.join(self.output_path_, value)
+					self.makedir(subfolder)
 
-				self.cube = sparse.DOK(self._get_shape(subfolder, where=value), dtype=np.uint8)
+					self.cube = sparse.DOK(self._get_shape(subfolder, where=value), dtype=np.uint8)
 
-				query = select_fields_from_table_where.format(', '.join(self.fields_), self.table_name_, self.group_by_, value, ratio)
-				cursor2 = self.get_named_cursor()
-				cursor2.execute(query)
+					query = select_fields_from_table_where.format(', '.join(self.fields_), self.table_name_, self.group_by_, value, ratio)
+					cursor2 = self.get_named_cursor()
+					cursor2.execute(query)
 
-				self._populate(cursor2, subfolder, desc=value, ratio=ratio)
+					self._populate(cursor2, subfolder, desc=value, ratio=ratio)
 
-		else:
-			self.cube = sparse.DOK(self._get_shape(self.output_path_), dtype=np.uint8)
+			else:
+				self.cube = sparse.DOK(self._get_shape(self.output_path_), dtype=np.uint8)
 
-			query = select_fields_from_table.format(', '.join(self.fields_), self.table_name_, ratio)
-			cursor = self.get_named_cursor()
-			cursor.execute(query)
+				query = select_fields_from_table.format(', '.join(self.fields_), self.table_name_, ratio)
+				cursor = self.get_named_cursor()
+				cursor.execute(query)
 
-			self._populate(cursor, self.output_path_, desc=self.table_name_, ratio=ratio)
+				self._populate(cursor, self.output_path_, desc=self.table_name_, ratio=ratio)
+		except:
+			self.log('Could not run on table {0} for fields {1} and ratio {2}'.format(self.table_name_, ', '.join(self.fields_), ratio))
 
 
 class DumpRows(Model):
@@ -151,9 +161,11 @@ class DumpRows(Model):
 		Model.__init__(self, out_path, connection, table_name, fields, 'dump_rows')
 
 	def run(self):
-		query = select_fields_from_table.format(', '.join(self.fields_), self.table_name_, 1.0)
-		cursor = self.get_named_cursor()
-		cursor.execute(query)
-		output_rows(os.path.join(self.output_path_, self.table_name_), cursor)
-
+		try:
+			query = select_fields_from_table.format(', '.join(self.fields_), self.table_name_, 1.0)
+			cursor = self.get_named_cursor()
+			cursor.execute(query)
+			self.output_rows(os.path.join(self.output_path_, self.table_name_), cursor)
+		except:
+			self.log('Could not run on table {0} for fields {1}'.format(self.table_name_, ', '.join(self.fields_)))
 
