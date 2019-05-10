@@ -7,7 +7,7 @@ import numpy as np
 from tqdm import tqdm
 
 from sql import select_fields_from_table, select_fields_from_table_where, select_distinct_values
-from sql import count_concept_occurrences, select_distinct_values_where
+from sql import select_distinct_values_where
 
 
 class Model:
@@ -28,11 +28,13 @@ class Model:
 		self.makedir(self.output_path_)
 		self.log_path_ = os.path.join(self.output_path_, 'error.log')
 
+		self.ratio = 1.0
+
 		print('Table: {0}'.format(self.table_name_))
 		print('Fields: {0}'.format('\t'.join(self.fields_)))
 
 	@staticmethod
-	def  makedir(path: str):
+	def makedir(path: str):
 		if not os.path.exists(path):
 			os.makedirs(path)
 
@@ -87,7 +89,7 @@ class ReferenceMatrix(Model):
 	def _get_indices(self, row: List):
 		return [self.dimension_keys[field][val] for field, val in zip(self.fields_, row)]
 
-	def _populate(self, cursor: psycopg2._psycopg.cursor, out_path: str, desc=None):
+	def _populate(self, cursor: psycopg2._psycopg.cursor, out_path: str, desc=None, ratio=1.0):
 		with tqdm(total=cursor.rowcount, desc=desc) as pbar:
 			for observation in cursor:
 				try:
@@ -110,9 +112,9 @@ class ReferenceMatrix(Model):
 				pbar.update(1)
 
 		self.cube = self.cube.to_coo()
-		sparse.save_npz(os.path.join(out_path, 'dimension_matrix'), self.cube)
+		sparse.save_npz(os.path.join(out_path, 'dimension_matrix_'+str(ratio).replace('.', '')), self.cube)
 
-	def run(self):
+	def run(self, ratio=1.0):
 		if self.group_by_:
 			query = select_distinct_values.format(self.group_by_, self.table_name_)
 			cursor1 = self.get_named_cursor()
@@ -126,20 +128,20 @@ class ReferenceMatrix(Model):
 
 				self.cube = sparse.DOK(self._get_shape(subfolder, where=value), dtype=np.uint8)
 
-				query = select_fields_from_table_where.format(', '.join(self.fields_), self.table_name_, self.group_by_, value)
+				query = select_fields_from_table_where.format(', '.join(self.fields_), self.table_name_, self.group_by_, value, ratio)
 				cursor2 = self.get_named_cursor()
 				cursor2.execute(query)
 
-				self._populate(cursor2, subfolder, desc=value)
+				self._populate(cursor2, subfolder, desc=value, ratio=ratio)
 
 		else:
 			self.cube = sparse.DOK(self._get_shape(self.output_path_), dtype=np.uint8)
 
-			query = select_fields_from_table.format(', '.join(self.fields_), self.table_name_)
+			query = select_fields_from_table.format(', '.join(self.fields_), self.table_name_, ratio)
 			cursor = self.get_named_cursor()
 			cursor.execute(query)
 
-			self._populate(cursor, self.output_path_, desc=self.table_name_)
+			self._populate(cursor, self.output_path_, desc=self.table_name_, ratio=ratio)
 
 
 class DumpRows(Model):
@@ -149,7 +151,7 @@ class DumpRows(Model):
 		Model.__init__(self, out_path, connection, table_name, fields, 'dump_rows')
 
 	def run(self):
-		query = select_fields_from_table.format(', '.join(self.fields_), self.table_name_)
+		query = select_fields_from_table.format(', '.join(self.fields_), self.table_name_, 1.0)
 		cursor = self.get_named_cursor()
 		cursor.execute(query)
 		output_rows(os.path.join(self.output_path_, self.table_name_), cursor)

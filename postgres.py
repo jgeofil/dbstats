@@ -33,7 +33,10 @@ DumpRows(OUT_PATH, conn, 'i2b2demodata.trial_visit_dimension', ['trial_visit_num
 model = ReferenceMatrix(OUT_PATH, conn, 'i2b2demodata.observation_fact',
 	['patient_num', 'concept_cd', 'modifier_cd', 'trial_visit_num'])
 model.ignore_key('patient_num')
-model.run()
+model.run(0.1)
+model.run(0.25)
+model.run(0.5)
+model.run(0.75)
 
 ReferenceMatrix(OUT_PATH, conn, 'i2b2demodata.observation_fact',
 	['tval_char', 'nval_num'], group_by='concept_cd').run()
