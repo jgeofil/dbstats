@@ -2,7 +2,7 @@ import sparse, psycopg2, os
 from typing import List
 from tqdm import tqdm
 import numpy as np
-from sql import select_fields_from_table, select_fields_from_table_where, select_distinct_values, select_distinct_values_where
+from dbstats.sql import select_fields_from_table, select_fields_from_table_where, select_distinct_values, select_distinct_values_where
 
 
 class Model:

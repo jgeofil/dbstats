@@ -1,6 +1,6 @@
 import psycopg2, yaml, os
 
-from models import ReferenceMatrix, DumpRows
+from dbstats.models import ReferenceMatrix, DumpRows
 
 with open('config.yaml') as fin:
 	config = yaml.load(fin)
