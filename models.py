@@ -10,8 +10,10 @@ class Model:
 	count_ = 0
 
 	def __init__(self, out_path: str, connection: psycopg2._psycopg.connection, table_name: str, fields: List[str], out_folder: str):
+
 		print('***********************************************')
-		print('Initializing model {0}..'.format(out_folder))
+		print('Model {0}'.format(out_folder))
+
 		self.fields_ = fields
 		self.table_name_ = table_name
 		self.ignore_keys_ = []
@@ -22,8 +24,6 @@ class Model:
 		self.output_path_ = os.path.join(out_path, out_folder, table_name)
 		self.makedir(self.output_path_)
 		self.log_path_ = os.path.join(self.output_path_, 'error.log')
-
-		self.ratio = 1.0
 
 		print('Table: {0}'.format(self.table_name_))
 		print('Fields: {0}'.format('\t'.join(self.fields_)))
@@ -39,11 +39,14 @@ class Model:
 			for val in list:
 				fout.write("{0}\n".format(val))
 
-	@staticmethod
-	def output_rows(file_path: str, cursor: psycopg2._psycopg.cursor):
+	def output_rows(self, file_path: str, cursor: psycopg2._psycopg.cursor):
 		with open(file_path, "w+") as fout:
 			for row in cursor:
-				fout.write('\t'.join([str(x) for x in row]) + '\n')
+				fout.write('\t'.join(self.stringify(row)) + '\n')
+
+	@staticmethod
+	def stringify(row: List):
+		return [str(x) for x in row]
 
 	def log(self, low_row):
 		with open(self.log_path_, 'a+') as flog:
@@ -73,30 +76,32 @@ class ReferenceMatrix(Model):
 	def rows_to_index(rows: List):
 		return {str(val): i for i, val in enumerate(rows)}
 
-	@staticmethod
-	def stringify(row: List):
-		return [str(x) for x in row]
-
 	def _get_shape(self, out_path: str, where=None):
 		shape = []
 		for field in self.fields_:
+
 			if where and self.group_by_:
 				query = select_distinct_values_where.format(field, self.table_name_, self.group_by_, where)
 			else:
 				query = select_distinct_values.format(field, self.table_name_)
+
 			cursor = self.get_named_cursor()
 			cursor.execute(query)
 			result = [self.stringify(row)[0] for row in cursor]
-			if not field in self.ignore_keys_:
+
+			if field not in self.ignore_keys_:
 				self.output_list(os.path.join(out_path, field), result)
+
 			shape.append(len(result))
 			self.dimension_keys[field] = self.rows_to_index(result)
+
 		return tuple(shape)
 
 	def _get_indices(self, row: List):
 		return [self.dimension_keys[field][val] for field, val in zip(self.fields_, row)]
 
 	def _populate(self, cursor: psycopg2._psycopg.cursor, out_path: str, desc=None, ratio=1.0):
+
 		with tqdm(total=cursor.rowcount, desc=desc) as pbar:
 			for observation in cursor:
 				try:
@@ -129,18 +134,21 @@ class ReferenceMatrix(Model):
 				cursor1.execute(query)
 
 				for value in cursor1:
-					value = str(value[0])
+					try:
+						value = str(value[0])
 
-					subfolder = os.path.join(self.output_path_, value)
-					self.makedir(subfolder)
+						subfolder = os.path.join(self.output_path_, value)
+						self.makedir(subfolder)
 
-					self.cube = sparse.DOK(self._get_shape(subfolder, where=value), dtype=np.uint8)
+						self.cube = sparse.DOK(self._get_shape(subfolder, where=value), dtype=np.uint8)
 
-					query = select_fields_from_table_where.format(', '.join(self.fields_), self.table_name_, self.group_by_, value, ratio)
-					cursor2 = self.get_named_cursor()
-					cursor2.execute(query)
+						query = select_fields_from_table_where.format(', '.join(self.fields_), self.table_name_, self.group_by_, value, ratio)
+						cursor2 = self.get_named_cursor()
+						cursor2.execute(query)
 
-					self._populate(cursor2, subfolder, desc=value, ratio=ratio)
+						self._populate(cursor2, subfolder, desc=value, ratio=ratio)
+					except:
+						self.log('Failed for group {0}'.format(value))
 
 			else:
 				self.cube = sparse.DOK(self._get_shape(self.output_path_), dtype=np.uint8)

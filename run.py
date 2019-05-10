@@ -1,6 +1,5 @@
-import psycopg2
-import yaml
-import os
+import psycopg2, yaml, os
+
 from models import ReferenceMatrix, DumpRows
 
 with open('config.yaml') as fin:
@@ -10,7 +9,6 @@ OUT_PATH = config['outPath']
 
 if not os.path.exists(OUT_PATH):
 	os.makedirs(OUT_PATH)
-
 
 conn = psycopg2.connect(dbname=config['dbname'],
 						user=config['username'],
