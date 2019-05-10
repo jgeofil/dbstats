@@ -1,20 +1,23 @@
-import psycopg2, yaml, os
+import psycopg2, os, argparse
+from .models import ReferenceMatrix, DumpRows
 
-from dbstats.models import ReferenceMatrix, DumpRows
+parser = argparse.ArgumentParser(description='DBstats')
+parser.add_argument('--db', help='Database name.', default='transmart')
+parser.add_argument('--user', help='Username.', default='postgres')
+parser.add_argument('--pswd', help='Password.', default='postgres')
+parser.add_argument('--host', help='Database host.', default='localhost')
+parser.add_argument('--out', help='Output folder.', default=os.path.join(os.getcwd(), 'out'))
+args = parser.parse_args()
 
-with open('config.yaml') as fin:
-	config = yaml.load(fin)
-
-OUT_PATH = config['outPath']
+OUT_PATH = args.out
 
 if not os.path.exists(OUT_PATH):
 	os.makedirs(OUT_PATH)
 
-conn = psycopg2.connect(dbname=config['dbname'],
-						user=config['username'],
-						password=config['password'],
-						host=config['host'])
-
+conn = psycopg2.connect(dbname=args.db,
+						user=args.user,
+						password=args.pswd,
+						host=args.host)
 
 DumpRows(OUT_PATH, conn, 'i2b2demodata.relation_type', ['id', 'label']).run()
 DumpRows(OUT_PATH, conn, 'i2b2demodata.study', ['study_num', 'study_id', 'study_blob']).run()
@@ -51,3 +54,5 @@ model2.run(0.5)
 model1.run(0.5)
 model2.run(0.75)
 model1.run(0.75)
+
+print('***** Done')

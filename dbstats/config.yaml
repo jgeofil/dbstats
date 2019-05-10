@@ -1,7 +1,0 @@
-schema: i2b2demodata
-dbname: transmart
-username: postgres
-password: postgres
-host: localhost
-outPath: out
-

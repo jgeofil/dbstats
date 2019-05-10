@@ -7,10 +7,9 @@ setup(name='dbstats',
         author='Jeremy Georges-Filteau',
         author_email='jeremy@thehyve.nl',
         license='MIT',
-        packages=['funniest'],
+        packages=['dbstats'],
 		install_requires=[
 			'psycopg2',
-			'yaml',
 			'sparse',
 			'tqdm',
 			'numpy'
