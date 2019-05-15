@@ -52,9 +52,5 @@ model2.run(0.25)
 ReferenceMatrix(OUT_PATH, conn, 'i2b2demodata.observation_fact',
 	['tval_char', 'nval_num'], group_by='concept_cd').run()
 
-model2.run(0.5)
-model1.run(0.5)
-model2.run(0.75)
-model1.run(0.75)
 
 print('***** Done')
