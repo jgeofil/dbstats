@@ -1,7 +1,7 @@
 from setuptools import setup
 
 setup(name='dbstats',
-		version='0.2.1',
+		version='0.2.2',
 		description='dbstats',
         url='https://github.com/jgeofil/dbstats',
         author='Jeremy Georges-Filteau',
