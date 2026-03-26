@@ -1,0 +1,8 @@
+name: pricing-gcp
+source: google-cloud-storage
+type: custom
+customQuery:
+  path: Pricing for MLReadme Billing Account - Pricing for MLReadme Billing Account.csv
+  type: string
+  fileType: automatic
+primaryKey: SKU ID
