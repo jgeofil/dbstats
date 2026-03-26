@@ -5,5 +5,8 @@ sources:
   google-cloud-storage:
     name: Google Cloud Storage
     type: gcs
-destinations: {}
+destinations:
+  google-sheets-service-account:
+    name: Google Sheets (Service Account)
+    type: googleSheetsSA
 slug: manifest-jgf-2
