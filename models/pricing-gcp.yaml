@@ -4,5 +4,5 @@ type: custom
 customQuery:
   path: Pricing for MLReadme Billing Account - Pricing for MLReadme Billing Account.csv
   type: string
-  fileType: csv
+  fileType: automatic
 primaryKey: SKU ID
