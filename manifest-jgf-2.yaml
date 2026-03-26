@@ -1,6 +1,9 @@
 # READ ONLY FILE
 # Changes made here will be ignored. Please use the Hightouch dashboard to create and edit sources and destinations.
 
-sources: {}
+sources:
+  google-cloud-storage:
+    name: Google Cloud Storage
+    type: gcs
 destinations: {}
 slug: manifest-jgf-2
