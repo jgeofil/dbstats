@@ -1,0 +1,8 @@
+name: software-notices
+source: google-cloud-storage
+type: custom
+customQuery:
+  path: NOTICE.csv
+  type: string
+  fileType: csv
+primaryKey: External Library Name
