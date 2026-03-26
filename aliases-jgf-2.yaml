@@ -1,0 +1,8 @@
+# Use this file to define custom IDs for sources and destinations in your workspace (https://hightouch.com/docs/extensions/git-sync#aliases). 
+#
+# Alias files have the structure 
+# sources:
+#     my-source-alias: actual-source-id
+# destinations:
+#     mydestinationalias: actual-destination-id
+#     other-destination-alias: my-destination-id
